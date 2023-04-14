@@ -1,0 +1,6 @@
+onrobot_sg_gripper:
+	ros_parameters:
+		ip: "192.168.1.1"
+		port: 502
+		model_id: 3
+		gentle: True
