@@ -1,4 +1,4 @@
-<img align="right" src="doc/img.jpg" width="300">
+<img align="right" src="https://github.com/Phayuth/harvester_arm/raw/main/doc/img.jpg" width="300">
 
 # Harvester Arm Robot
 This package is written for the harvesting arm robot project in my lab in ROS2. [For Mom!]

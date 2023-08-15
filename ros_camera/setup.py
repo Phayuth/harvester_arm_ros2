@@ -1,6 +1,8 @@
 from setuptools import setup
+from glob import glob
+import os
 
-package_name = 'robot_planarrr'
+package_name = 'ros_camera'
 
 setup(
     name=package_name,
@@ -10,6 +12,7 @@ setup(
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
+        (os.path.join('share', package_name), glob('launch/*.launch.py')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -20,11 +23,9 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            # exe name       = package name.filename.main_function
-            "planar_node_exe = robot_planarrr.planar_rr_node:main",
-            "planar_fwdk_exe = robot_planarrr.planar_rr_pub:main",
-            "planar_invk_ext = robot_planarrr.planar_rr_sub:main",
-            "turtle_closeloop = robot_planarrr.turtle_pubsub:main"
+        'crop_localize = ros_camera.rs_crop_localization:main',
+        'perception_tf = ros_camera.tf_pub:main',
+        'crop_harvest_pose = ros_camera.rs_crop_harvest_pose:main',
         ],
     },
 )

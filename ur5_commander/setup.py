@@ -1,6 +1,6 @@
 from setuptools import setup
 
-package_name = 'robot_planarrr'
+package_name = 'ur5_commander'
 
 setup(
     name=package_name,
@@ -20,11 +20,6 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            # exe name       = package name.filename.main_function
-            "planar_node_exe = robot_planarrr.planar_rr_node:main",
-            "planar_fwdk_exe = robot_planarrr.planar_rr_pub:main",
-            "planar_invk_ext = robot_planarrr.planar_rr_sub:main",
-            "turtle_closeloop = robot_planarrr.turtle_pubsub:main"
         ],
     },
 )
