@@ -4,9 +4,9 @@ import rclpy
 import ultralytics
 from cv_bridge import CvBridge
 from geometry_msgs.msg import Pose, PoseArray
-from rclpy.executors import MultiThreadedExecutor
+from rclpy.executors import MultiThreadedExecutor, SingleThreadedExecutor
 from rclpy.node import Node
-from scipy.ndimage import binary_dilation
+from scipy.ndimage import binary_dilation, binary_erosion
 from sensor_msgs.msg import Image, PointCloud2
 from std_msgs.msg import Header
 
@@ -14,17 +14,20 @@ from std_msgs.msg import Header
 class CropLocalization(Node):
 
     def __init__(self):
-        super().__init__('crop_detection_and_pose_node')
-        self.detectionModel = ultralytics.YOLO('./weight/yolov8x-seg.pt')
+        super().__init__('crop_detection_node')
+        # name
+        self.yoloWeightDir = './weight/yolov8x-seg.pt'
+        self.topicImageSub = '/camera/color/image_raw'
+        self.topicPointCloudSub = '/camera/depth/color/points'
+        self.topicArrayPub = '/crop_point'
+        self.topicMaskPub = '/crop_detection'
+        self.sensorLinkName = 'camera_link'
 
-        self.imageSub = self.create_subscription(Image, '/camera/color/image_raw', self.masked_image, 10)
-        self.pointcloudSub = self.create_subscription(PointCloud2, '/camera/depth/color/points', self.get_point_cloud, 10)
-
-        self.poseArrayPub = self.create_publisher(PoseArray, '/crop_pose_array', 10)
-        # self.poseArrayTimer = self.create_timer(0.03, self.publish_pose_array)
-
-        self.maskPub = self.create_publisher(Image, '/crop_detection', 10)
-        # self.maskTimer = self.create_timer(0.03, self.pub_mask_image)
+        self.detectionModel = ultralytics.YOLO(self.yoloWeightDir)
+        self.imageSub = self.create_subscription(Image, self.topicImageSub, self.masked_image, 10)
+        self.pointCloudSub = self.create_subscription(PointCloud2, self.topicPointCloudSub, self.get_point_cloud, 10)
+        self.poseArrayPub = self.create_publisher(PoseArray, self.topicArrayPub, 10)
+        self.maskPub = self.create_publisher(Image, self.topicMaskPub, 10)
 
         self.br = CvBridge()
 
@@ -32,11 +35,17 @@ class CropLocalization(Node):
         self.mask = None
         self.pointCloud = None
 
+        self.get_logger().info(f'\nperception initialized. \
+                               \nimage subscribe on {self.topicImageSub}. \
+                               \npoint cloud subscribe on {self.topicPointCloudSub}. \
+                               \nmask image published on {self.topicMaskPub}. \
+                               \ncrop point published on {self.topicArrayPub}.')
+
     def masked_image(self, data):
         imgBGR = self.br.imgmsg_to_cv2(data)
         imgRGB = cv2.cvtColor(imgBGR, cv2.COLOR_BGR2RGB)
         imgMask = np.zeros((imgRGB.shape[0], imgRGB.shape[1]))
-        results = self.detectionModel(imgRGB, stream=True, conf=0.5, verbose=True)
+        results = self.detectionModel(imgRGB, stream=True, conf=0.5, verbose=False)
         for r in results:
             boxes = r.boxes
             masks = r.masks
@@ -53,6 +62,9 @@ class CropLocalization(Node):
         self.pub_mask_image()
         self.publish_pose_array()
 
+    def get_point_cloud(self, msg):
+        self.pointCloud = np.frombuffer(msg.data, dtype=np.float32).reshape(-1, msg.point_step // 4)[:, :4]
+
     def pub_mask_image(self):
         if self.image is not None:
             imgshow = np.where(self.mask[..., None], self.image, 0)
@@ -65,18 +77,16 @@ class CropLocalization(Node):
             poseArrayMsg = PoseArray()
             poseArrayMsg.header = Header()
             poseArrayMsg.header.stamp = self.get_clock().now().to_msg()
-            poseArrayMsg.header.frame_id = 'camera_link'
+            poseArrayMsg.header.frame_id = self.sensorLinkName
 
             # no dilation
             # mask = self.mask
 
             # with dilation
-            mask = 1 - self.mask
-            mask = binary_dilation(mask, iterations=10).astype(mask.dtype)
-            mask = 1 - mask
+            mask = binary_erosion(self.mask, iterations=10).astype(self.mask.dtype)
 
             rows, cols = np.nonzero(mask)
-            for i, (row, col) in enumerate(zip(rows, cols)):
+            for row, col in zip(rows, cols):
                 index = (row*640) + col
                 xyzc = self.pointCloud[index]
                 x = xyzc[0]
@@ -90,19 +100,12 @@ class CropLocalization(Node):
 
             self.poseArrayPub.publish(poseArrayMsg)
 
-    def get_point_cloud(self, msg):
-        self.pointCloud = self.point_cloud2_to_array(msg)
-
-    def point_cloud2_to_array(self, msg):
-        point_cloud = np.frombuffer(msg.data, dtype=np.float32).reshape(-1, msg.point_step // 4)[:, :4]
-        return point_cloud
-
 
 def main(args=None):
     rclpy.init(args=args)
     try:
         node = CropLocalization()
-        executor = MultiThreadedExecutor()
+        executor = SingleThreadedExecutor()
         executor.add_node(node)
         try:
             executor.spin()

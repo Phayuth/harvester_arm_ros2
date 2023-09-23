@@ -13,27 +13,33 @@ class CropHarvestingPose(Node):
 
     def __init__(self):
         super().__init__('crop_harvest_pose_node')
+        # name
+        self.topicCropPointSub = '/crop_point'
+        self.topicHarvestPosePub = '/crop_harvest_pose'
+        self.servUpdatePoint = '/trigger_update_harvest_pose'
+        self.sensorLinkName = 'camera_link'
 
         # get point on crop
-        self.subscription = self.create_subscription(PoseArray, '/crop_pose_array', self.pose_array_callback, 10)
+        self.subscription = self.create_subscription(PoseArray, self.topicCropPointSub, self.pose_array_callback, 10)
 
         # publish point to camera frame
-        self.poseArrayPub = self.create_publisher(PoseArray, '/crop_harvest_goal_pose', 10)
-        self.poseArrayAppPub = self.create_publisher(PoseArray, '/crop_harvest_app_pose', 10)
+        self.poseArrayPub = self.create_publisher(PoseArray, self.topicHarvestPosePub, 10)
         self.poseArrayTimer = self.create_timer(0.2, self.publish_pose_array)
-        self.triggerUpdatePoint = self.create_service(Trigger, 'trigger_update_harvest_point', self.trigger_update_point)
+        self.triggerUpdatePoint = self.create_service(Trigger, self.servUpdatePoint, self.trigger_update_point)
 
         self.point = None
         self.harvestPoseArrayMsg = None
-        self.auxPoseArrayAppMsg = None
 
-        self.get_logger().info('Initialize Ready')
+        self.get_logger().info(f'\nharvest node initialized. \
+                               \ncrop point subscribe on {self.topicCropPointSub}. \
+                               \ncrop harvest published on {self.topicHarvestPosePub}.')
+        self.get_logger().info(f'\ncall -> ros2 service call {self.servUpdatePoint} std_srvs/srv/Trigger {{}} to update havest pose')
 
     def pose_array_callback(self, msg):
         poses = msg.poses
-        num_poses = len(poses)
-        if num_poses != 0:
-            xyz_values = np.zeros((num_poses, 3))
+        numPoses = len(poses)
+        if numPoses != 0:
+            xyz_values = np.zeros((numPoses, 3))
             for i, pose in enumerate(poses):
                 xyz_values[i, 0] = pose.position.x
                 xyz_values[i, 1] = pose.position.y
@@ -42,9 +48,8 @@ class CropHarvestingPose(Node):
             self.point = xyz_values
 
     def publish_pose_array(self):
-        if self.harvestPoseArrayMsg is not None and self.auxPoseArrayAppMsg is not None:
+        if self.harvestPoseArrayMsg is not None:
             self.poseArrayPub.publish(self.harvestPoseArrayMsg)
-            self.poseArrayAppPub.publish(self.auxPoseArrayAppMsg)
     
     def trigger_update_point(self, request, response):
         if self.point is not None:
@@ -58,52 +63,40 @@ class CropHarvestingPose(Node):
 
             harvestPoint = np.asarray(pcdDownSample.points).T
             normalPointOut = np.asarray(pcdDownSample.normals).T
-            auxPoint, normalPointIntoCrop = self.auxilary_pose_offset(harvestPoint, normalPointOut * -1, distanceOffset=0.1)
+            auxPoint, normalPointIntoCrop = self.auxilary_pose_offset(harvestPoint, -1 * normalPointOut, distanceOffset=0.1)
 
             harvestPoseArrayMsg = PoseArray()
             harvestPoseArrayMsg.header = Header()
             harvestPoseArrayMsg.header.stamp = self.get_clock().now().to_msg()
-            harvestPoseArrayMsg.header.frame_id = 'camera_link'
-
-            auxPoseArrayAppMsg = PoseArray()
-            auxPoseArrayAppMsg.header = Header()
-            auxPoseArrayAppMsg.header.stamp = self.get_clock().now().to_msg()
-            auxPoseArrayAppMsg.header.frame_id = 'camera_link'
+            harvestPoseArrayMsg.header.frame_id = self.sensorLinkName
 
             for i in range(harvestPoint.shape[1]):
-                xGoal = harvestPoint[0, i]
-                yGoal = harvestPoint[1, i]
-                zGoal = harvestPoint[2, i]
                 rM = self.rotation_matrix_align_z_axis(normalPointIntoCrop[:, i])
                 r = R.from_matrix(rM)
                 rq = r.as_quat().astype(dtype=float)
                 harvestPose = Pose()
-                harvestPose.position.x = float(xGoal)
-                harvestPose.position.y = float(yGoal)
-                harvestPose.position.z = float(zGoal)
+                harvestPose.position.x = float(harvestPoint[0, i])
+                harvestPose.position.y = float(harvestPoint[1, i])
+                harvestPose.position.z = float(harvestPoint[2, i])
                 harvestPose.orientation.x = rq[0]
                 harvestPose.orientation.y = rq[1]
                 harvestPose.orientation.z = rq[2]
                 harvestPose.orientation.w = rq[3]
                 harvestPoseArrayMsg.poses.append(harvestPose)
 
-                xAux = auxPoint[0, i]
-                yAux = auxPoint[1, i]
-                zAux = auxPoint[2, i]
                 auxPose = Pose()
-                auxPose.position.x = float(xAux)
-                auxPose.position.y = float(yAux)
-                auxPose.position.z = float(zAux)
+                auxPose.position.x = float(auxPoint[0, i])
+                auxPose.position.y = float(auxPoint[1, i])
+                auxPose.position.z = float(auxPoint[2, i])
                 auxPose.orientation.x = rq[0]
                 auxPose.orientation.y = rq[1]
                 auxPose.orientation.z = rq[2]
                 auxPose.orientation.w = rq[3]
-                auxPoseArrayAppMsg.poses.append(auxPose)
+                harvestPoseArrayMsg.poses.append(auxPose)
 
             self.harvestPoseArrayMsg = harvestPoseArrayMsg
-            self.auxPoseArrayAppMsg = auxPoseArrayAppMsg
             response.success = True
-            response.message = "New Pose Is Updated"
+            response.message = f"New Pose Is Updated. Available on {self.topicHarvestPosePub}"
         else:
             response.success = False
             response.message = "Wait Until Point is available"

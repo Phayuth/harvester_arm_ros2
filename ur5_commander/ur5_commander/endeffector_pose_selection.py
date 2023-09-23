@@ -25,8 +25,9 @@ class CropHarvestingPose(Node):
         self.goalPickedPosePub = self.create_publisher(PoseStamped, '/crop_harvest_goal_picked', 10)
         self.auxiPickedPosePub = self.create_publisher(PoseStamped, '/crop_harvest_aux_picked', 10)
 
-        self.pickedIndex = 10  # we have to score but for now just picked it
-
+        self.pickedGoalIndex = 10  # we have to score but for now just picked it
+        self.picketAuxIndex = self.pickedGoalIndex + 1
+        
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
 
