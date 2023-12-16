@@ -3,8 +3,5 @@
 # Harvester Arm Robot
 This package is written for the harvesting arm robot project in my lab in ROS2. [For Mom!]
 
-## Setup [List](REFERENCES-SETUP.md)
-Read system setup here.
-
-## References [List](REFERENCES.md)
+## References [List](./doc/)
 Some of the code is taken from some of other repo (all right belong to their respective author).

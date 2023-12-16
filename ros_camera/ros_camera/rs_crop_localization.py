@@ -36,10 +36,10 @@ class CropLocalization(Node):
         self.pointCloud = None
 
         self.get_logger().info(f'\nperception initialized. \
-                               \nimage subscribe on {self.topicImageSub}. \
-                               \npoint cloud subscribe on {self.topicPointCloudSub}. \
-                               \nmask image published on {self.topicMaskPub}. \
-                               \ncrop point published on {self.topicArrayPub}.')
+                                 \nimage subscribe on {self.topicImageSub}. \
+                                 \npoint cloud subscribe on {self.topicPointCloudSub}. \
+                                 \nmask image published on {self.topicMaskPub}. \
+                                 \ncrop point published on {self.topicArrayPub}.')
 
     def masked_image(self, data):
         imgBGR = self.br.imgmsg_to_cv2(data)

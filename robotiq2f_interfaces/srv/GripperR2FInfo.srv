@@ -1,0 +1,10 @@
+---
+bool is_ready
+bool is_reset
+bool is_moving
+bool is_stopped
+bool object_detected
+int32 get_fault_status
+float32 get_pos
+float32 get_req_pos
+float32 get_current

@@ -1,9 +1,12 @@
+import sys
+sys.path.append("/home/yuth/ws_yuthdev/robotics_manipulator")
+
+from target_localization.harvest_poses.harvest_pose import HarvestPose
 import rclpy
 import numpy as np
 from rclpy.node import Node
 from geometry_msgs.msg import Pose, PoseArray
 from std_msgs.msg import Header
-import open3d as o3d
 from scipy.spatial.transform import Rotation as R
 from rclpy.executors import MultiThreadedExecutor
 from std_srvs.srv import Trigger
@@ -31,8 +34,8 @@ class CropHarvestingPose(Node):
         self.harvestPoseArrayMsg = None
 
         self.get_logger().info(f'\nharvest node initialized. \
-                               \ncrop point subscribe on {self.topicCropPointSub}. \
-                               \ncrop harvest published on {self.topicHarvestPosePub}.')
+                                 \ncrop point subscribe on {self.topicCropPointSub}. \
+                                 \ncrop harvest published on {self.topicHarvestPosePub}.')
         self.get_logger().info(f'\ncall -> ros2 service call {self.servUpdatePoint} std_srvs/srv/Trigger {{}} to update havest pose')
 
     def pose_array_callback(self, msg):
@@ -50,20 +53,11 @@ class CropHarvestingPose(Node):
     def publish_pose_array(self):
         if self.harvestPoseArrayMsg is not None:
             self.poseArrayPub.publish(self.harvestPoseArrayMsg)
-    
+
     def trigger_update_point(self, request, response):
         if self.point is not None:
-
-            pcd = o3d.geometry.PointCloud()
-            pcd.points = o3d.utility.Vector3dVector(self.point)
-            pcd.estimate_normals()
-            pcd.normalize_normals()
-            pcd.orient_normals_towards_camera_location()
-            pcdDownSample = pcd.voxel_down_sample(voxel_size=0.01)
-
-            harvestPoint = np.asarray(pcdDownSample.points).T
-            normalPointOut = np.asarray(pcdDownSample.normals).T
-            auxPoint, normalPointIntoCrop = self.auxilary_pose_offset(harvestPoint, -1 * normalPointOut, distanceOffset=0.1)
+            harvest = HarvestPose(self.point)
+            harvestPoint, auxPoint, normalPointIntoCrop = harvest.get_point()
 
             harvestPoseArrayMsg = PoseArray()
             harvestPoseArrayMsg.header = Header()
@@ -71,7 +65,7 @@ class CropHarvestingPose(Node):
             harvestPoseArrayMsg.header.frame_id = self.sensorLinkName
 
             for i in range(harvestPoint.shape[1]):
-                rM = self.rotation_matrix_align_z_axis(normalPointIntoCrop[:, i])
+                rM = harvest.rotmat_align_z_axis(normalPointIntoCrop[:, i])
                 r = R.from_matrix(rM)
                 rq = r.as_quat().astype(dtype=float)
                 harvestPose = Pose()
@@ -101,26 +95,6 @@ class CropHarvestingPose(Node):
             response.success = False
             response.message = "Wait Until Point is available"
         return response
-    
-    def rotation_matrix_align_z_axis(self, unit_vector):
-        z_axis = np.array([0, 0, 1])  # Z-axis
-        rotation_axis = np.cross(z_axis, unit_vector)
-        rotation_axis /= np.linalg.norm(rotation_axis) + 0.0001  # to avoid devide by 0
-        rotation_cos = np.dot(z_axis, unit_vector)
-        rotation_sin = np.sqrt(1 - rotation_cos**2)
-        rotation_matrix = np.eye(3) + rotation_sin * self.skew_symmetric_matrix(rotation_axis) + (1-rotation_cos) * self.skew_symmetric_matrix(rotation_axis) @ self.skew_symmetric_matrix(rotation_axis)
-        return rotation_matrix
-
-    def skew_symmetric_matrix(self, vector):
-        matrix = np.array([[0, -vector[2], vector[1]], [vector[2], 0, -vector[0]], [-vector[1], vector[0], 0]])
-        return matrix
-
-    def auxilary_pose_offset(self, point, normalPointIntoCrop, distanceOffset):  # assume the normal vector direction is pointing into the crop when pass in
-        if point.shape[0] != 3:
-            point = point.T
-            normalPointIntoCrop = normalPointIntoCrop.T
-        auxPoint = distanceOffset * (-1 * normalPointIntoCrop) + point
-        return auxPoint, normalPointIntoCrop
 
 
 def main(args=None):

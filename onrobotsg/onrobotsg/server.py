@@ -1,8 +1,6 @@
 import rclpy
 from rclpy.node import Node
-
 from onrobotsg_interfaces.srv import GripperSgSrv
-
 from .driver import SG
 
 
@@ -23,7 +21,7 @@ class Service(Node):
     def __init__(self):
         super().__init__('service')
 
-        self.ip = "192.168.1.1"
+        self.ip = "192.168.0.137"
         self.port = 502
         self.model_id = 3
         self.gent = True
@@ -35,10 +33,10 @@ class Service(Node):
         self.sg.set_gentle(self.gent)
         self.get_logger().info("Gripper width is 110 to 750")
 
-        self.srv = self.create_service(GripperSgSrv, 'gripper_Command', self.execute_callback)
+        self.srv = self.create_service(GripperSgSrv, 'gripper_command', self.execute_callback)
 
     def execute_callback(self, request, response):
-        self.get_logger().info('Incoming request %d' % request.desiredwidth)
+        self.get_logger().info(f'Incoming request {request.desiredwidth}')
         self.sg.set_target(request.desiredwidth)
         self.sg.set_move()
         response.status = "SUCCESS"
@@ -51,18 +49,13 @@ class Service(Node):
 
 def main(args=None):
     rclpy.init(args=args)
-    service = Service()
-    rclpy.spin(service)
-    rclpy.shutdown()
+    try:
+        serviceNode = Service()
+        rclpy.spin(serviceNode)
+    finally:
+        serviceNode.close_connection()
+        rclpy.shutdown()
 
 
 if __name__ == '__main__':
-
-    try:
-        main()
-
-    except Exception as e:
-        raise e
-
-    finally:
-        service.close_connection()
+    main()
