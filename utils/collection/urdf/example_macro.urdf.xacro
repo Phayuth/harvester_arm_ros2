@@ -1,0 +1,53 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="example_robot">
+
+  <xacro:arg name="arg1_input" default=""/>
+  <xacro:arg name="arg2_input" default="jj"/>
+
+  <xacro:macro name="example_macro" params="link1_name link2_name">
+    <link name="${link1_name}">
+      <visual>
+        <geometry>
+          <box size="0.1 0.1 0.5" />
+        </geometry>
+        <origin xyz="0 0 0" />
+        <material name="red" />
+      </visual>
+      <collision>
+        <geometry>
+          <box size="0.1 0.1 0.5" />
+        </geometry>
+        <origin xyz="0 0 0" />
+      </collision>
+    </link>
+
+    <link name="${link2_name}">
+      <visual>
+        <geometry>
+          <box size="0.1 0.1 0.5" />
+        </geometry>
+        <origin xyz="0.5 0 0" />
+        <material name="blue" />
+      </visual>
+      <collision>
+        <geometry>
+          <box size="0.1 0.1 0.5" />
+        </geometry>
+        <origin xyz="0.5 0 0" />
+      </collision>
+    </link>
+
+    <joint name="joint1" type="revolute">
+      <origin xyz="0 0 0" />
+      <parent link="${link1_name}" />
+      <child link="${link2_name}" />
+      <axis xyz="0 0 1" />
+      <limit lower="-3.14" upper="3.14" effort="10" velocity="1" />
+    </joint>
+  </xacro:macro>
+
+  <!-- xacro example_macro.urdf.xacro arg1_input:=john arg2_input:=cena -->
+  <xacro:example_macro link1_name="$(arg arg1_input)" link2_name="$(arg arg2_input)">
+  </xacro:example_macro>
+
+</robot>
