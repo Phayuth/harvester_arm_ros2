@@ -8,8 +8,10 @@ import pytransform3d.camera as pc
 import pytransform3d.transformations as pt
 
 np.set_printoptions(suppress=True)
-sys.path.append("/home/yuth/ws_yuthdev/robotics_manipulator")
-from spatial_geometry.spatial_transformation import RigidBodyTransformation as rbt
+import sys
+import os
+sys.path.append(str(wd=os.path.abspath(os.getcwd())))
+from xtras.spatial_transformation import RigidBodyTransformation as rbt
 from simplearuco import ARUCOBoardPose
 
 
@@ -227,7 +229,7 @@ if __name__ == "__main__":
 
     def centroid_only():
         path = pathlib.Path(__file__).parent.resolve()
-        stereo = StereoProcess(4, 10, path, loadCalibrated=False)
+        stereo = StereoProcess(10, 4, path, loadCalibrated=False)
         # simaru = SimpleARUCO()
 
         classes = [40, 41]
@@ -265,7 +267,7 @@ if __name__ == "__main__":
 
     def allpoint():
         path = pathlib.Path(__file__).parent.resolve()
-        stereo = StereoProcess(4, 10, path, loadCalibrated=False)
+        stereo = StereoProcess(10, 4, path, loadCalibrated=False)
         # simaru = SimpleARUCO()
 
         classes = [40, 41]

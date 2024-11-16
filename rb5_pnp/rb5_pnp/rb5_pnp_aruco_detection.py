@@ -1,5 +1,7 @@
 import sys
-sys.path.append("/home/yuth/ws_yuthdev/robotics_manipulator")
+import os
+sys.path.append(str(wd=os.path.abspath(os.getcwd())))
+from xtras.spatial_transformation import RigidBodyTransformation as rbt
 import cv2
 import numpy as np
 from cv_bridge import CvBridge
@@ -9,7 +11,6 @@ from rclpy.executors import MultiThreadedExecutor
 from rclpy.callback_groups import ReentrantCallbackGroup
 from geometry_msgs.msg import PoseStamped
 from sensor_msgs.msg import CameraInfo, Image
-from spatial_geometry.spatial_transformation import RigidBodyTransformation as rbt
 
 
 class ArUcoSimplePoseEstimator(Node):

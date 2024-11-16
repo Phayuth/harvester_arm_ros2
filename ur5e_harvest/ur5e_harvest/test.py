@@ -7,7 +7,7 @@ import cv2
 import matplotlib.pyplot as plt
 import pytransform3d.camera as pc
 import pytransform3d.transformations as pt
-
+import pickle
 np.set_printoptions(suppress=True)
 sys.path.append("/home/yuth/ws_yuthdev/robotics_manipulator")
 from spatial_geometry.spatial_transformation import RigidBodyTransformation as rbt
@@ -41,7 +41,7 @@ def move_tcp(tcp, asyn=False):
     rtde_c.moveL(tcp, 0.25, 0.5, asyn)
 
 
-# d  = 0.483594594
+# d = 0.483594594
 # h =
 
 

@@ -12,7 +12,7 @@ class ImageStream(Node):
     def __init__(self):
         super().__init__("image_stream")
         path = pathlib.Path(__file__).parent.resolve()
-        self.camleft = Camera(4, str(path) + "/left.yaml")
+        self.camleft = Camera(10, str(path) + "/left.yaml")
         self.br = CvBridge()
 
         # message

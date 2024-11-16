@@ -1,5 +1,7 @@
 import sys
-sys.path.append("/home/yuth/ws_yuthdev/robotics_manipulator")
+import os
+sys.path.append(str(wd=os.path.abspath(os.getcwd())))
+from xtras.spatial_transformation import RigidBodyTransformation as rbt
 import time
 import numpy as np
 import rclpy
@@ -13,7 +15,6 @@ from robotiq2f_interfaces.srv import Robotiq2FCmd
 from rb_interfaces.srv import ReqJnt, ReqTcp
 from tf2_ros.buffer import Buffer
 from tf2_ros.transform_listener import TransformListener
-from spatial_geometry.spatial_transformation import RigidBodyTransformation as rbt
 
 
 class RB5PnPRun(Node):

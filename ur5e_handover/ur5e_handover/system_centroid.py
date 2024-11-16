@@ -1,8 +1,7 @@
 import sys
-
-sys.path.append("/home/yuth/ws_yuthdev/robotics_manipulator")
-from spatial_geometry.spatial_transformation import RigidBodyTransformation as rbt
-
+import os
+sys.path.append(str(wd=os.path.abspath(os.getcwd())))
+from xtras.spatial_transformation import RigidBodyTransformation as rbt
 import rclpy
 from rclpy.node import Node
 from rclpy.executors import MultiThreadedExecutor
@@ -39,29 +38,15 @@ class SimpleSystem(Node):
         self.homej = [3.4809112548828125e-05, -0.8096572917750855, -1.9074101448059082, -3.6404277286925257, -1.5708077589618128, -3.1415932814227503]
         self.homet = [0.15594326155634256, -0.13457440350544858, 0.5256641098226548, -1.2664412512623242, 1.2635574967973842, -1.1795720169587576]
         self.fixedorientation = self.homet[3:6]
-
-        self.dropzonet = [0.8781918310724031, -0.039869372802589065, -0.022375079856074787]
-
-        # self.dropzoffset = 0.17
-        # self.dropt = [0.8781918310724031, -0.039869372802589065, -0.022375079856074787 + self.dropzoffset] + self.fixedorientation  # calucated from perception
+        self.dropzoffset = 0.17
+        self.dropt = [0.8781918310724031, -0.039869372802589065, -0.022375079856074787 + self.dropzoffset] + self.fixedorientation  # calucated from perception
 
         # self.dropj = [0.16559672355651855, -1.9429060421385707, -2.0326151847839355, -2.386176725427145, -1.4103148619281214, -3.134151283894674]
         # self.dropt = [0.5268100809090901, -0.06395943130935745, 0.16152765181404297, -1.2773341136449956, 1.2542592095008442, -1.1738317174684596]
         # self.fakegraspj = [0.632285475730896, -1.5457076591304322, -1.2139649391174316, -3.5172182522215785, -0.9690817038165491, -3.134223286305563]
         # self.fakegraspt = [0.4642602103488932, 0.10377248246679507, 0.6354979900135115, -1.211801008167565, 1.1849909033855954, -1.1877744865830127]
 
-        self.centsub = self.create_subscription(PointStamped, "/p_cent_3d", self.get_cent, 1, callback_group=self.ccb)
-        self.topsub = self.create_subscription(PointStamped, "/p_top_3d", self.get_top, 1, callback_group=self.ccb)
-        self.botsub = self.create_subscription(PointStamped, "/p_bot_3d", self.get_bot, 1, callback_group=self.ccb)
-        self.leftsub = self.create_subscription(PointStamped, "/p_left_3d", self.get_left, 1, callback_group=self.ccb)
-        self.rightsub = self.create_subscription(PointStamped, "/p_right_3d", self.get_right, 1, callback_group=self.ccb)
-
-        self.pointc = None
-        self.pointb = None
-        self.pointt = None
-        self.pointl = None
-        self.pointr = None
-
+        self.pointsub = self.create_subscription(PointStamped, "/centroid3d", self.get_centroid, 1, callback_group=self.ccb)
         self.pseudoMatchTime = Duration(seconds=0, nanoseconds=70000000)  # 0.07 sec
         self.iscupmoving = False
 
@@ -70,28 +55,10 @@ class SimpleSystem(Node):
         self.rtde_r = rtde_receive.RTDEReceiveInterface("192.168.0.3")
 
         # run loop
-        self.timer_ = self.create_timer(0.5, self.run_loop, callback_group=self.cbgtimer)
+        self.timer_ = self.create_timer(3, self.run_loop, callback_group=self.cbgtimer)
 
-    def get_cent(self, msg: PointStamped):
+    def get_centroid(self, msg: PointStamped):
         self.pointc = msg
-
-    def get_top(self, msg: PointStamped):
-        self.pointt = msg
-
-    def get_bot(self, msg: PointStamped):
-        self.pointb = msg
-
-    def get_left(self, msg: PointStamped):
-        self.pointl = msg
-
-    def get_right(self, msg: PointStamped):
-        self.pointr = msg
-
-    def get_drop_tcp(self):
-        h = np.abs(self.pointc.point.z - self.pointb.point.z)
-        dropt = self.dropzonet.copy()
-        dropt[2] += h + 0.1
-        return dropt + self.fixedorientation
 
     def get_actual_tcp_h(self):
         t = self.rtde_r.getActualTCPPose()
@@ -132,9 +99,9 @@ class SimpleSystem(Node):
             return True
 
     def is_object_on_table(self):
-        self.get_logger().info(f"z is at {self.pointb.point.z}")
-        if self.pointb.point.z < self.ztablelimit:
-            self.get_logger().info(f"cup is on table with z at {self.pointb.point.z}")
+        self.get_logger().info(f"z is at {self.pointc.point.z}")
+        if self.pointc.point.z < self.ztablelimit:
+            self.get_logger().info(f"cup is on table with z at {self.pointc.point.z}")
             return True
         else:
             return False
@@ -153,19 +120,10 @@ class SimpleSystem(Node):
         else:
             return True
 
-    def get_retract(self):
-        t = self.rtde_r.getActualTCPPose()
-        t[0] -= 0.1
-        return t
-
     def run_loop(self):
         self.timer_.cancel()
-        # move to home
-        self.move_joint(self.homej)
-        self.get_logger().info("moving to home")
 
         if self.pointc is None:
-            self.timer_.reset()
             return
 
         if not self.is_object_updated():
@@ -200,11 +158,7 @@ class SimpleSystem(Node):
         time.sleep(1)
 
         # move to drop off
-        # self.move_tcp(self.dropt)
-        dropt = self.get_drop_tcp()
-        self.move_tcp(dropt)
-        self.move_until_contact([0.0, 0.0, -0.1, 0.0 ,0.0 ,0.0])
-        # self.move_until_contact_control()
+        self.move_tcp(self.dropt)
         self.get_logger().info("moving to drop off")
 
         # open gripper
@@ -212,16 +166,11 @@ class SimpleSystem(Node):
         self.send_req_gripper(self.gripperOpen, self.gripperVel, self.gripperForce)
         time.sleep(1)
 
-        # retract motion
-        retr = self.get_retract()
-        self.move_tcp(retr)
-        self.get_logger().info("moving to retract")
-
         # move to home
         self.move_joint(self.homej)
         self.get_logger().info("moving to home")
 
-        # self.timer_.reset()
+        self.timer_.reset()
 
     def send_req_gripper(self, pos, vel, force):
         rqm = Robotiq2FCmd.Request()
@@ -247,19 +196,6 @@ class SimpleSystem(Node):
         self.rtde_c.moveJ(jnt, 1.05, 1.4, asyn)
         # self.rtde_c.stopJ(0.5)
         # self.rtde_c.stopScript()
-
-    def move_until_contact(self, xd=[0.0, 0.0, 0.0, 0.0, 0.0, 0.0]):
-        self.rtde_c.moveUntilContact(xd)
-
-    # def move_until_contact_control(self):
-    #     e = np.zeros(6)
-    #     t = self.get_tcp_value()[0:3]
-    #     e[0:3] = np.array(self.dropzonet) - np.array(t)
-    #     elimit = np.clip(e, -0.05, 0.05)
-    #     while
-    #     ec = elimit.tolist() + [0.0, 0.0, 0.0]
-
-    #     self.move_until_contact(ec)
 
 
 def main(args=None):

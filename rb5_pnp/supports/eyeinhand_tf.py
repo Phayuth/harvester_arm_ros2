@@ -1,9 +1,9 @@
 import sys
+import os
 
-sys.path.append("/home/yuth/ws_yuthdev/robotics_manipulator")
-
+sys.path.append(str(wd=os.path.abspath(os.getcwd())))
+from xtras.spatial_transformation import RigidBodyTransformation as rbt
 import numpy as np
-from spatial_geometry.spatial_transformation import RigidBodyTransformation as rbt
 
 """
 Problem :

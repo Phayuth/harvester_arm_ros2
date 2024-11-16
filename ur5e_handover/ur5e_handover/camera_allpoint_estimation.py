@@ -20,7 +20,7 @@ class AllPointEstimation(Node):
         super().__init__("image_publisher")
         # stereo
         path = pathlib.Path(__file__).parent.resolve()
-        self.stereo = StereoProcess(4, 10, path, loadCalibrated=True)
+        self.stereo = StereoProcess(10, 4, path, loadCalibrated=True)
 
         # vision
         self.classes = [40, 41]

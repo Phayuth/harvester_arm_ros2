@@ -19,6 +19,6 @@ ros2 run camera_calibration cameracalibrator --approximate 0.1 --size 8x6 --squa
 ```
 
 Mono
-```
+```bash
 ros2 run camera_calibration cameracalibrator --approximate 0.1 --size 8x6 --square 0.024 image:=/camera/color/image_raw camera:=/camera/color
 ```

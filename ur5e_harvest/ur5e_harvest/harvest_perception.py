@@ -15,7 +15,7 @@ from geometry_msgs.msg import Pose, PoseArray, Point, Quaternion
 
 from spatial_geometry.spatial_transformation import RigidBodyTransformation as rbt
 from projects.yolo_detection.yolo_mask import CVYOLOMask
-from grasp_poses.gp_normal_parallel import NormalVectorParallelGraspPose
+from grasp_poses.normal_parallel import NormalVectorParallelGraspPose
 
 
 class CropLocalization(Node):

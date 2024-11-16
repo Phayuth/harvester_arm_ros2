@@ -14,6 +14,7 @@ class NodeA(Node):
         self.subscription_1 = self.create_subscription(Int64, "topic_1", self.callback1, 1)
         # self.subscription_2 = self.create_subscription(Int64, "topic_2", self.callback2, 2)
         self.j = 0
+
     def callback1(self, msg):
         # time.sleep(1)
         self.get_logger().info(f"Callback1: {msg.data} at {hex(id(msg))} and is matched {msg.data == self.j}")
@@ -43,7 +44,7 @@ class NodeB(Node):
         msg.data = self.i1
         # time.sleep(1)
         self.publisher_1.publish(msg)
-        self.get_logger().info(f'Publishing: {msg.data} at {hex(id(msg))}')
+        self.get_logger().info(f"Publishing: {msg.data} at {hex(id(msg))}")
         self.i1 += 1
 
     def timer_callback2(self):
@@ -51,7 +52,7 @@ class NodeB(Node):
         msg.data = self.i2
         time.sleep(5)
         self.publisher_2.publish(msg)
-        self.get_logger().info(f'Publishing: {msg.data} at {hex(id(msg))}')
+        self.get_logger().info(f"Publishing: {msg.data} at {hex(id(msg))}")
         self.i2 += 1
 
 

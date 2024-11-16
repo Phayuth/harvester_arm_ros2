@@ -230,8 +230,8 @@ if __name__ == "__main__":
 
     # Load the YOLO model
     model = YOLO("/home/yuth/ws_yuthdev/neural_network/datasave/neural_weight/yolov8x-seg.pt")
-    cap1 = cv2.VideoCapture(4)
-    cap2 = cv2.VideoCapture(10)
+    cap1 = cv2.VideoCapture(10)
+    cap2 = cv2.VideoCapture(4)
 
     center = Center()
 

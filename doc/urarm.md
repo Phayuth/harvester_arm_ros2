@@ -25,11 +25,11 @@ ros2 launch ur5e_pnp ur_control_airlab.launch.py use_fake_hardware:=true launch_
 ros2 launch ur_bringup ur_control.launch.py ur_type:=ur5e robot_ip:=192.168.0.3 launch_rviz:=true
 ```
 
-```
+```bash
 ros2 launch ur5e_pnp ur_control_airlab.launch.py robot_ip:=192.168.0.3 launch_rviz:=true
 ```
 
-```
+```bash
 ros2 launch ur_bringup ur_moveit.launch.py ur_type:=ur5e robot_ip:=192.168.0.3 launch_rviz:=true
 ```
 
